@@ -1,7 +1,11 @@
-#include "ft_ping.h"
 
+/* Index of next option in arg list */
 int		ft_optind = 0;
+
+/* Actual argument */
 char	ft_optopt = 0;
+
+/* This global is a pointer to actual argument value */
 char	*ft_optarg = 0;
 
 static	void	next_opt(int ac, char **av, int *nexti, int *nextj)

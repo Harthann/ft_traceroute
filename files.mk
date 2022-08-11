@@ -1,7 +1,7 @@
 NAME = ft_traceroute
 
-SRC_FILE = main.c
+SRC_FILE = main.c parser.c
  
-HEADERS	= parser.h
+HEADERS	= parser.h ft_traceroute.h
 
 
