@@ -11,7 +11,7 @@ void print_help()
 int parse_arg(int ac, char **av, t_target *target) {
 	char c;
 
-	while ((c = ft_getopt(ac, av, "h")) != -1)
+	while ((c = ft_getopt(ac, av, "ht:")) != -1)
 	{
 		switch (c)
 		{
@@ -31,7 +31,7 @@ int parse_arg(int ac, char **av, t_target *target) {
 	return 0;
 }
 
-int	resolve_host(t_target *target)
+int	init_socket(t_target *target)
 {
 	struct addrinfo		hints;
 	struct addrinfo		*res;
@@ -41,10 +41,19 @@ int	resolve_host(t_target *target)
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 
+	errno = 0;
 	if (getaddrinfo(target->host, NULL, &hints, &res))
 		return -1;
 	target->sockaddr = *(struct sockaddr_in*)res->ai_addr;
+	target->addrlen = res->ai_addrlen;
 	target->ip = inet_ntoa(target->sockaddr.sin_addr);
+	errno = 0;
+	if ((target->socketfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+		return -1;
+	errno = 0;
+	if ((target->receiverfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)
+		return -1;
+
 	freeaddrinfo(res);
 	return 0;
 }
@@ -63,9 +72,10 @@ int main(int ac, char **av)
 
 	if (parse_arg(ac, ++av, &target) != 0)
 		return 0;
-	if (resolve_host(&target) != 0) {
-		PRINT_ERROR(ERR_DNS, "%s: %s\n", target.host);
+	if (init_socket(&target) != 0) {
+		ERROR(ERR_DNS);
+		return -1;
 	}
-	printf("Target: %s\nTarget IP: %s\n", target.host, target.ip);
+	trace(target);
 	return 0;
 }
