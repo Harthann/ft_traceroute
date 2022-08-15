@@ -1,5 +1,35 @@
 #include "ft_traceroute.h"
 
+
+void dbg_dump_bytes(const void* data, size_t size) {
+	char ascii[17];
+	size_t i;
+	ascii[16] = '\0';
+	for (i = 0; i < size; ++i) {
+		if (i % 16 == 0)
+			fprintf(stderr, "%p: ", data + i);
+		fprintf(stderr, "%02x ", ((unsigned char*)data)[i]);
+		if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
+			ascii[i % 16] = ((unsigned char*)data)[i];
+		} else {
+			ascii[i % 16] = '.';
+		}
+		if ((i+1) % 8 == 0 || i+1 == size) {
+			fprintf(stderr, " ");
+			if ((i+1) % 16 == 0) {
+				fprintf(stderr, "|  %s \n", ascii);
+			} else if (i+1 == size) {
+				ascii[(i+1) % 16] = '\0';
+				if ((i+1) % 16 <= 8) {
+					fprintf(stderr, " ");
+				}
+				fprintf(stderr, "%*.0d", 3 * (16 - (((int)i + 1) % 16)), 0);
+				fprintf(stderr, "|  %s \n", ascii);
+			}
+		}
+	}
+}
+
 void send_triplet
 (int socketfd, struct sockaddr_in sockaddr, struct timeval *timestamps)
 {
@@ -17,7 +47,6 @@ int receive_responses(t_target target, t_resinfo *infos)
 	unsigned int	index;
 	t_icmppkt		packet = {0};
 	int				ret = 0;
-	t_icmppkt		recv = { 0 };
 	struct sockaddr socktmp;
 	socklen_t socklen;
 
@@ -40,11 +69,8 @@ int receive_responses(t_target target, t_resinfo *infos)
 	for (int i = 0; i < PPH; i++)
 	{
 		errno = 0;
-		int tmp;
-		//if ((tmp = recvmsg(target.receiverfd, &message, MSG_WAITALL)) > 0)
-		if ((tmp = recvfrom(target.receiverfd, &recv, sizeof(recv), 0, &socktmp, &socklen)) > 0)
+		if (recvfrom(target.receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen) > 0)
 		{
-			printf("Port :%d\n", ntohs(packet.reqhdr.dest));
 			index = ntohs(packet.reqhdr.dest) - BASE_PORT;
 			if (index >= PPH) {
 				i--;
@@ -57,10 +83,6 @@ int receive_responses(t_target target, t_resinfo *infos)
 				if (packet.hdr.type == 3 && packet.hdr.code == 3)
 					ret = 1;
 			}
-		}
-		else
-		{
-			printf("%d %s\n", tmp, strerror(errno));
 		}
 	}
 
