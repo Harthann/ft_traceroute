@@ -17,6 +17,9 @@ int receive_responses(t_target target, t_resinfo *infos)
 	unsigned int	index;
 	t_icmppkt		packet = {0};
 	int				ret = 0;
+	t_icmppkt		recv = { 0 };
+	struct sockaddr socktmp;
+	socklen_t socklen;
 
 	/* recvmsg struct initialisation */
 	struct iovec	iov = {
@@ -31,12 +34,17 @@ int receive_responses(t_target target, t_resinfo *infos)
 		.msg_flags = 0
 	};
 
+	(void)message;
+
 	errno = 0;
 	for (int i = 0; i < PPH; i++)
 	{
 		errno = 0;
-		if (recvmsg(target.receiverfd, &message, 0) > 0)
+		int tmp;
+		//if ((tmp = recvmsg(target.receiverfd, &message, MSG_WAITALL)) > 0)
+		if ((tmp = recvfrom(target.receiverfd, &recv, sizeof(recv), 0, &socktmp, &socklen)) > 0)
 		{
+			printf("Port :%d\n", ntohs(packet.reqhdr.dest));
 			index = ntohs(packet.reqhdr.dest) - BASE_PORT;
 			if (index >= PPH) {
 				i--;
@@ -49,6 +57,10 @@ int receive_responses(t_target target, t_resinfo *infos)
 				if (packet.hdr.type == 3 && packet.hdr.code == 3)
 					ret = 1;
 			}
+		}
+		else
+		{
+			printf("%d %s\n", tmp, strerror(errno));
 		}
 	}
 
