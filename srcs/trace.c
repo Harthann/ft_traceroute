@@ -36,8 +36,6 @@ int receive_responses(t_target target, t_resinfo *infos)
 				if (packet.hdr.type == 3 && packet.hdr.code == 3)
 					ret = 1;
 			}
-		} else {
-			PANICERRNO(ERR_UNDEFINED);
 		}
 		counter += 1;
 	}
