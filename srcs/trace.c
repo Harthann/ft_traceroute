@@ -1,35 +1,5 @@
 #include "ft_traceroute.h"
 
-
-void dbg_dump_bytes(const void* data, size_t size) {
-	char ascii[17];
-	size_t i;
-	ascii[16] = '\0';
-	for (i = 0; i < size; ++i) {
-		if (i % 16 == 0)
-			fprintf(stderr, "%p: ", data + i);
-		fprintf(stderr, "%02x ", ((unsigned char*)data)[i]);
-		if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
-			ascii[i % 16] = ((unsigned char*)data)[i];
-		} else {
-			ascii[i % 16] = '.';
-		}
-		if ((i+1) % 8 == 0 || i+1 == size) {
-			fprintf(stderr, " ");
-			if ((i+1) % 16 == 0) {
-				fprintf(stderr, "|  %s \n", ascii);
-			} else if (i+1 == size) {
-				ascii[(i+1) % 16] = '\0';
-				if ((i+1) % 16 <= 8) {
-					fprintf(stderr, " ");
-				}
-				fprintf(stderr, "%*.0d", 3 * (16 - (((int)i + 1) % 16)), 0);
-				fprintf(stderr, "|  %s \n", ascii);
-			}
-		}
-	}
-}
-
 void send_triplet
 (int socketfd, struct sockaddr_in sockaddr, struct timeval *timestamps)
 {
@@ -41,41 +11,24 @@ void send_triplet
 		gettimeofday(timestamps + i, NULL);
 	}
 }
+#include <unistd.h>
 
 int receive_responses(t_target target, t_resinfo *infos)
 {
 	unsigned int	index;
 	t_icmppkt		packet = {0};
 	int				ret = 0;
+	int				counter = 0;
 	struct sockaddr socktmp;
-	socklen_t socklen;
-
-	/* recvmsg struct initialisation */
-	struct iovec	iov = {
-		.iov_base = &packet,
-		.iov_len = sizeof(t_icmppkt)
-	};
-	struct msghdr	message = {
-		.msg_iov = &iov,
-		.msg_iovlen = 1,
-		.msg_control = NULL,
-		.msg_controllen = 0,
-		.msg_flags = 0
-	};
-
-	(void)message;
+	socklen_t		socklen = sizeof(socktmp);
 
 	errno = 0;
-	for (int i = 0; i < PPH; i++)
-	{
+	while (counter < PPH) {
+		memset(&packet, 0, sizeof(packet));
 		errno = 0;
-		if (recvfrom(target.receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen) > 0)
-		{
+		if (recvfrom(target.receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen) > 0) {
 			index = ntohs(packet.reqhdr.dest) - BASE_PORT;
-			if (index >= PPH) {
-				i--;
-			}
-			else {
+			if (index < PPH || !SHOULD_IGNORE(packet.hdr)) {
 				gettimeofday(&infos[index].timestamps, NULL);
 				infos[index].port = ntohs(packet.reqhdr.dest);
 				infos[index].saddr = packet.ip.saddr;
@@ -83,7 +36,10 @@ int receive_responses(t_target target, t_resinfo *infos)
 				if (packet.hdr.type == 3 && packet.hdr.code == 3)
 					ret = 1;
 			}
+		} else {
+			PANICERRNO(ERR_UNDEFINED);
 		}
+		counter += 1;
 	}
 
 	return ret;
@@ -107,7 +63,7 @@ void trace(t_target target) {
 		PANICERRNO(ERR_SETSOCK);
 
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 	if (setsockopt(target.receiverfd, SOL_SOCKET, SO_RCVTIMEO , &tv, sizeof(tv)) < 0)
 		PANICERRNO(ERR_SETSOCK);

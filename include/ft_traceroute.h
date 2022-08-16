@@ -24,13 +24,16 @@
 /* It determines how many packets are sent for each hop test */
 #define PPH 3
 #define MAX_HOP 30
+#define TIMEOUT 2
 
 #define BASE_PORT 33434
 #define UDP_MSG "42424242424242424242424242424242"
 #define MSG_LEN sizeof(UDP_MSG) - 1
 #define PACKET_SIZE sizeof(struct udphdr) + sizeof(struct iphdr) + MSG_LEN
 
+#define SHOULD_IGNORE(icmp) (icmp.type != 3 && icmp.type != 11 && icmp.type != 0)
 
+/* Representation of a response packet from router */
 typedef struct s_icmppkt {
 	struct iphdr	ip; 
 	struct icmphdr	hdr;
@@ -38,8 +41,8 @@ typedef struct s_icmppkt {
 	struct udphdr	reqhdr;
 }	__attribute__((packed)) t_icmppkt;
 
+/* This structure will store socket utilities */
 typedef struct {
-
 	/* Target hostnames if provided */
 	char				*host;
 
@@ -59,6 +62,7 @@ typedef struct {
 
 } t_target;
 
+/* This structure help store information about response */
 typedef struct s_resinfo {
 	struct timeval	timestamps;
 	int				port;
