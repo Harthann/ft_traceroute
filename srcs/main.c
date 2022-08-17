@@ -48,7 +48,7 @@ int	init_socket(t_target *target)
 	target->addrlen = res->ai_addrlen;
 	target->ip = inet_ntoa(target->sockaddr.sin_addr);
 	errno = 0;
-	if ((target->socketfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+	if ((target->socketfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0)
 		return -1;
 	errno = 0;
 	if ((target->receiverfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)

@@ -41,6 +41,21 @@ typedef struct s_icmppkt {
 	struct udphdr	reqhdr;
 }	__attribute__((packed)) t_icmppkt;
 
+typedef struct s_udppkt {
+	struct	iphdr	ip;
+	struct udphdr	udp;
+	char			msg[MSG_LEN];
+} t_udppkt;
+
+typedef struct s_pseudo_udphdr {
+	struct in_addr		saddr;
+	struct in_addr		daddr;
+	char				zeros;
+	char				protocol;
+	short				udplen;
+	t_udppkt			udp;
+} t_pseudo_udphdr;
+
 /* This structure will store socket utilities */
 typedef struct {
 	/* Target hostnames if provided */
@@ -49,6 +64,8 @@ typedef struct {
 	/* Target IP from getaddrinfo */
 	char				*ip;
 
+	struct in_addr		self;
+
 	/* Target info given by getaddrinfo */
 	struct sockaddr_in	sockaddr;
 	socklen_t			addrlen;
@@ -56,6 +73,7 @@ typedef struct {
 	/* Target socket created to send/recv */
 	int					socketfd;
 	int					receiverfd;
+
 
 	/*	Keep track of the actual ttl tested */
 	int					ttl;
