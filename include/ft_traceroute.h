@@ -28,6 +28,7 @@
 
 #define BASE_PORT 33434
 #define UDP_MSG "42424242424242424242424242424242"
+#define UDP_MS	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define MSG_LEN sizeof(UDP_MSG) - 1
 #define PACKET_SIZE sizeof(struct udphdr) + sizeof(struct iphdr) + MSG_LEN
 
@@ -48,12 +49,13 @@ typedef struct s_udppkt {
 } t_udppkt;
 
 typedef struct s_pseudo_udphdr {
-	struct in_addr		saddr;
-	struct in_addr		daddr;
+	u_int32_t			saddr;
+	u_int32_t			daddr;
 	char				zeros;
 	char				protocol;
-	short				udplen;
+	u_int16_t			udplen;
 	t_udppkt			udp;
+	char				msg[MSG_LEN];
 } t_pseudo_udphdr;
 
 /* This structure will store socket utilities */
@@ -88,7 +90,11 @@ typedef struct s_resinfo {
 	unsigned int	error;
 } t_resinfo;
 
-void trace(t_target target);
-void print_result(t_target target, t_resinfo *infos ,struct timeval *timestamps);
+void			trace(t_target target);
+void			print_result(t_target target, t_resinfo *infos ,struct timeval *timestamps);
+int				ft_rand(void);
+void			ft_srand(unsigned int seed);
+unsigned short	udp_checksum(t_udppkt *addr);
+void			dbg_dump_bytes(const void* data, size_t size);
 
 #endif
