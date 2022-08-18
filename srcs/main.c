@@ -35,6 +35,8 @@ int	init_socket(t_target *target)
 {
 	struct addrinfo		hints;
 	struct addrinfo		*res;
+	struct timeval		tv = { 0 };
+	char				on = 1;
 
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET;
@@ -43,16 +45,35 @@ int	init_socket(t_target *target)
 
 	errno = 0;
 	if (getaddrinfo(target->host, NULL, &hints, &res))
-		return -1;
+		RET_ERROR(-1);
+
 	target->sockaddr = *(struct sockaddr_in*)res->ai_addr;
 	target->addrlen = res->ai_addrlen;
 	target->ip = inet_ntoa(target->sockaddr.sin_addr);
+
+/*
+** Opening socket to our target with UDP protocol
+** Opening a second socket to read icmp responses
+*/
 	errno = 0;
-	if ((target->socketfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0)
-		return -1;
-	errno = 0;
-	if ((target->receiverfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)
-		return -1;
+	target->socketfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+	target->receiverfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	if (target->socketfd < 0 || target->receiverfd < 0)
+		RET_ERROR(-1);
+
+/*
+** Telling our kernel that we will handle ip header
+** So he doesn't fill it himself
+*/
+	if (setsockopt(target->socketfd, IPPROTO_IP, IP_HDRINCL, (char*)&on, sizeof(on)) < 0)
+		RET_ERROR(-1);
+
+/*
+**	Setting timeout to our receiving socket
+*/
+	tv.tv_sec = TIMEOUT;
+	if (setsockopt(target->receiverfd, SOL_SOCKET, SO_RCVTIMEO , &tv, sizeof(tv)) < 0)
+		RET_ERROR(-1);
 
 	freeaddrinfo(res);
 	return 0;
@@ -72,10 +93,8 @@ int main(int ac, char **av)
 
 	if (parse_arg(ac, ++av, &target) != 0)
 		return 0;
-	if (init_socket(&target) != 0) {
-		ERROR(ERR_DNS);
+	if (init_socket(&target) != 0)
 		return -1;
-	}
 	trace(target);
 	return 0;
 }

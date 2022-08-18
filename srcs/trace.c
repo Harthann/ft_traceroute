@@ -112,23 +112,16 @@ void trace(t_target target) {
 		.timestamps = {0}
 	}};
 
-	struct timeval tv;
-	tv.tv_sec = TIMEOUT;
-	tv.tv_usec = 0;
-	if (setsockopt(target.receiverfd, SOL_SOCKET, SO_RCVTIMEO , &tv, sizeof(tv)) < 0)
-		PANICERRNO(ERR_SETSOCK);
-
-/* Setting up our bases port reference */
+/*
+** Sending a first packet to fetch our own ip from response
+** This is done in order to fill the ip header
+** And so properly calculating checksum
+*/
 	target.sockaddr.sin_port = htons(BASE_PORT);
+	retreive_self_addr(&target);
+	
 	printf("ft_traceroute to %s (%s), %d hops max, %ld byte packets\n",
 			target.host, target.ip, MAX_HOP, PACKET_SIZE);
-
-
-	char on = 1;
-	if (setsockopt(target.socketfd, IPPROTO_IP, IP_HDRINCL, (char *) &on, sizeof(on)) < 0)
-		PANICERRNO(ERR_SETSOCK);
-
-	retreive_self_addr(&target);
 
 	for (int i = 0; i < MAX_HOP; i++) {
 		memset(infos, 0, sizeof(infos));

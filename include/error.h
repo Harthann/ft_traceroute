@@ -11,8 +11,11 @@ extern char *icmp_errors[];
 #define ERR_UNDEFINED 3
 #define NB_ICMPCODE 16
 
-#define ERROR(x) fprintf(stderr, "%s\nErrno said: %s\n", errors[x], strerror(errno))
-#define PANIC(x) { fprintf(stderr, "Panic! %s\n", errors[x]); exit (x); } 
-#define PANICERRNO(x) { fprintf(stderr, "Panic! %s\nErrni said: %s\n", errors[x], strerror(errno)); exit (x); } 
+#define RET_ERROR(x) { \
+	fprintf(stderr, "%s\n", strerror(errno)); \
+	return (x); \
+}
+
+#define PANIC(x) { fprintf(stderr, "Panic! %s\n", strerror(errno)); exit (x); } 
 
 
