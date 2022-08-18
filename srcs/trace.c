@@ -31,7 +31,7 @@ void send_triplet
 		packet.udp.dest = target->sockaddr.sin_port;
 		packet.udp.source = htons(ft_rand());
 		packet.udp.check = udp_checksum(&packet);
-		checks[i] = packet.udp.check;
+		checks[i] = packet.udp.source;
 
 		errno = 0;
 		sendto(target->socketfd, &packet, sizeof(packet), 0, (struct sockaddr*)&target->sockaddr, sizeof(struct sockaddr));
@@ -39,10 +39,8 @@ void send_triplet
 		gettimeofday(timestamps + i, NULL);
 	}
 }
-#include <unistd.h>
 
-
-int receive_responses(t_target target, t_resinfo *infos)
+int receive_responses(t_target target, t_resinfo *infos, u_int16_t *checks)
 {
 	unsigned int	index = -1;
 	t_icmppkt		packet = {0};
@@ -57,18 +55,22 @@ int receive_responses(t_target target, t_resinfo *infos)
 		index = -1;
 		memset(&packet, 0, sizeof(packet));
 		errno = 0;
-		if (recvfrom(target.receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen) > 0) {
+		if ((ret = recvfrom(target.receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen)) > 0) {
 			index = ntohs(packet.reqhdr.dest) - BASE_PORT;
-			if (index < PPH || !SHOULD_IGNORE(packet.hdr)) {
+	//		printf("Received response: %d %d %d %d %u\n", packet.hdr.type, packet.hdr.code, ntohs(packet.reqhdr.dest), index, index);
+			if (index < PPH && !SHOULD_IGNORE(packet.hdr) && checks[index] == packet.reqhdr.source) {
 				gettimeofday(&infos[index].timestamps, NULL);
 				infos[index].port = ntohs(packet.reqhdr.dest);
 				infos[index].saddr = packet.ip.saddr;
 				infos[index].error = packet.hdr.code + 2;
 				if (packet.hdr.type == 3 && packet.hdr.code == 3)
 					ret = 1;
+				counter += 1;
 			}
+		} else if (ret == -1 ) {
+			counter += 1;
 		}
-		counter += 1;
+		//printf("Returned: %d %d %s\n", ret, errno, strerror(errno));
 	}
 
 	return ret;
@@ -100,8 +102,8 @@ void retreive_self_addr(t_target *target) {
 	memcpy(&target->self, &packet.ip.daddr, sizeof(u_int32_t));
 }
 
-void trace(t_target target) {
-	int				error = 0;
+void trace(t_target target)
+{
 	struct 	timeval	timestamps[PPH] = {0};
 	u_int16_t			checks[PPH] = { 0 };
 
@@ -119,7 +121,7 @@ void trace(t_target target) {
 */
 	target.sockaddr.sin_port = htons(BASE_PORT);
 	retreive_self_addr(&target);
-	
+
 	printf("ft_traceroute to %s (%s), %d hops max, %ld byte packets\n",
 			target.host, target.ip, MAX_HOP, PACKET_SIZE);
 
@@ -129,8 +131,7 @@ void trace(t_target target) {
 
 		send_triplet(&target, timestamps, checks);
 
-		error = receive_responses(target, infos);
-		if (error == 1) {
+		if (receive_responses(target, infos, checks) == 1) {
 			print_result(target, infos, timestamps);
 			exit (0);
 		}

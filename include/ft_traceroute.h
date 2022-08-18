@@ -28,7 +28,6 @@
 
 #define BASE_PORT 33434
 #define UDP_MSG "42424242424242424242424242424242"
-#define UDP_MS	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define MSG_LEN sizeof(UDP_MSG) - 1
 #define PACKET_SIZE sizeof(struct udphdr) + sizeof(struct iphdr) + MSG_LEN
 

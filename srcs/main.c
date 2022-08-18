@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "ft_traceroute.h"
+#include <time.h>
 
 void print_help()
 {
@@ -11,7 +12,7 @@ void print_help()
 int parse_arg(int ac, char **av, t_target *target) {
 	char c;
 
-	while ((c = ft_getopt(ac, av, "ht:")) != -1)
+	while ((c = ft_getopt(ac, av, "h")) != -1)
 	{
 		switch (c)
 		{
@@ -91,10 +92,13 @@ int main(int ac, char **av)
 		return 0;
 	}
 
+	ft_srand(time(NULL));
+
 	if (parse_arg(ac, ++av, &target) != 0)
 		return 0;
 	if (init_socket(&target) != 0)
 		return -1;
+
 	trace(target);
 	return 0;
 }
