@@ -92,7 +92,7 @@ int main(int ac, char **av)
 		return 0;
 	}
 
-	ft_srand(time(NULL));
+	srand(time(NULL));
 
 	if (parse_arg(ac, ++av, &target) != 0)
 		return 0;

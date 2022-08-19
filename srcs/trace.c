@@ -119,6 +119,7 @@ void trace(t_target target)
 ** This is done in order to fill the ip header
 ** And so properly calculating checksum
 */
+	target.ttl = 1;
 	target.sockaddr.sin_port = htons(BASE_PORT);
 	retreive_self_addr(&target);
 

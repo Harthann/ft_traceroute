@@ -21,11 +21,14 @@ void print_result(t_target target, t_resinfo *infos ,struct timeval *timestamps)
 	for (int i = 0; i < PPH; i++) {
 		if (infos[i].error != 0)
 		{
+			memset(hostname, 0, NI_MAXHOST);
 			tmp.s_addr = infos[i].saddr;
-			getnameinfo((struct sockaddr*)&address, sizeof(address), hostname, sizeof(hostname), NULL, 0, NI_NOFQDN);
+			address.sin_addr = tmp;
+			errno = 0;
+			getnameinfo((struct sockaddr*)&address, sizeof(address), hostname, sizeof(hostname), NULL, 0, 0);
 
 			if (i == 0 || infos[i].saddr != infos[i - 1].saddr) {
-				printf(" %s (%s)", inet_ntoa(tmp), inet_ntoa(tmp));
+				printf(" %s (%s)", hostname[0] ? hostname : inet_ntoa(tmp), inet_ntoa(tmp));
 			}
 			printf(" %.3f ms", diff_time(infos[i].timestamps, timestamps[i]));
 		}
