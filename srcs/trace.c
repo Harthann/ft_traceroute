@@ -29,7 +29,7 @@ void send_triplet
 		packet.udp.check = 0;
 		target->sockaddr.sin_port = htons(tmp + i);
 		packet.udp.dest = target->sockaddr.sin_port;
-		packet.udp.source = htons(ft_rand());
+		packet.udp.source = htons(rand() % 65535);
 		packet.udp.check = udp_checksum(&packet);
 		checks[i] = packet.udp.source;
 
@@ -84,10 +84,10 @@ void retreive_self_addr(t_target *target) {
 	fill_ip(&payload.ip, *target);
 	payload.ip.saddr = INADDR_ANY;
 	memset(&payload.msg, 42, MSG_LEN);
-	
+
 	payload.udp.len = htons(sizeof(struct udphdr) + MSG_LEN);
-	payload.udp.dest = htons(33333);
-	payload.udp.source = htons(ft_rand());
+	payload.udp.dest = htons(BASE_PORT);
+	payload.udp.source = htons(rand() % 65535);
 	payload.udp.check = 0;
 	
 	socklen_t		socklen = sizeof(socktmp);
@@ -98,7 +98,12 @@ void retreive_self_addr(t_target *target) {
 	target->sockaddr.sin_port = htons(ntohs(target->sockaddr.sin_port) + 1);
 
 	while (packet.hdr.type != 11 || packet.hdr.code != 0)
+	{
+		errno = 0;
 		recvfrom(target->receiverfd, &packet, sizeof(packet), 0, &socktmp, &socklen);
+		if (packet.reqhdr.dest == payload.udp.dest && packet.reqhdr.source == payload.udp.source)
+			break ;
+	}
 	memcpy(&target->self, &packet.ip.daddr, sizeof(u_int32_t));
 }
 

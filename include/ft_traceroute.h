@@ -91,8 +91,6 @@ typedef struct s_resinfo {
 
 void			trace(t_target target);
 void			print_result(t_target target, t_resinfo *infos ,struct timeval *timestamps);
-int				ft_rand(void);
-void			ft_srand(unsigned int seed);
 unsigned short	udp_checksum(t_udppkt *addr);
 void			dbg_dump_bytes(const void* data, size_t size);
 

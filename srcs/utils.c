@@ -1,18 +1,5 @@
 #include "ft_traceroute.h"
 
-static unsigned long int next_rand = 1;
-
-void		ft_srand(unsigned int seed)
-{
-	next_rand = seed;
-}
-
-int			ft_rand(void)
-{
-	next_rand = next_rand * 1103515245 + 12345;
-	return (unsigned int)(next_rand / 65536) % 32768;
-}
-
 unsigned short checksum(void *addr, size_t count)
 {
 	unsigned short *ptr;
@@ -41,7 +28,6 @@ unsigned short udp_checksum(t_udppkt *addr)
 
 	return (checksum(&dummy, sizeof(dummy)));
 }
-
 
 void dbg_dump_bytes(const void* data, size_t size) {
 	char ascii[17];
