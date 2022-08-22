@@ -56,7 +56,7 @@ OBJ		= ${addprefix ${OBJ_PATH}/, ${SRC_FILE:%.c=%.o}} \
 
 FLAGS = -Wall -Werror -Wextra -MMD -MP 
 DEBUG = -g3
-SAN = -g3 -fsanitize=address
+SAN = -g3 -fsanitize=address,undefined
 OPT_FLAGS = -flto
 
 ifeq ($(strip $(shell uname)),Darwin)
@@ -79,7 +79,7 @@ $(NAME) : ${OBJ}
 debug: extend_flags re
 
 extend_flags:
-	$(eval FLAGS += $(DEBUG))
+	$(eval FLAGS += $(DEBUG) $(SAN))
 
 ${OBJ_PATH}/%.o: %.c
 	@mkdir -p ${OBJ_PATH}

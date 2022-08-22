@@ -4,9 +4,10 @@
 
 void print_help()
 {
-	printf("Usage:\n\ttraceroute [-h] host\n");
+	printf("Usage:\n\t./ft_traceroute [-h] host\n");
 	printf("Options:\n");
-	printf("-h\t\t\tPrint this message");
+	printf("-h\t\t\tPrint this message\n");
+	printf("host\t\t\tCan be either an ip or hostname\n\t\t\tEx: ./ft_traceroute google.com\n");
 }
 
 int parse_arg(int ac, char **av, t_target *target) {
@@ -25,13 +26,21 @@ int parse_arg(int ac, char **av, t_target *target) {
 		}
 	}
 	target->host = av[ft_optind];
-	if (av[ft_optind + 1] != NULL) {
-		printf("Sorry i don't handle packetlen yet\n");
-		return 1;
+	if (target->host == NULL) {
+		printf("Missing argument\n");
+		print_help();
+		return (-1);
 	}
 	return 0;
 }
 
+/*
+** Initialize two sockets to proceed exchange
+** One udp socket for sending and one icmp for receiving
+** If one of the syscalls fail (socket or setsockopt)
+** Goto will make us jump at the of the function to free addrinfo
+** and return an error
+*/
 int	init_socket(t_target *target)
 {
 	struct addrinfo		hints;
@@ -44,9 +53,10 @@ int	init_socket(t_target *target)
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 
-	errno = 0;
-	if (getaddrinfo(target->host, NULL, &hints, &res))
-		RET_ERROR(-1);
+	if (getaddrinfo(target->host, NULL, &hints, &res)) {
+		fprintf(stderr, "Couldn't resolve hostname\n");
+		return (-1);
+	}
 
 	target->sockaddr = *(struct sockaddr_in*)res->ai_addr;
 	target->addrlen = res->ai_addrlen;
@@ -60,23 +70,27 @@ int	init_socket(t_target *target)
 	target->socketfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
 	target->receiverfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	if (target->socketfd < 0 || target->receiverfd < 0)
-		RET_ERROR(-1);
+		goto _init_socket_end;
 
 /*
 ** Telling our kernel that we will handle ip header
 ** So he doesn't fill it himself
 */
+	errno = 0;
 	if (setsockopt(target->socketfd, IPPROTO_IP, IP_HDRINCL, (char*)&on, sizeof(on)) < 0)
-		RET_ERROR(-1);
+		goto _init_socket_end;
 
 /*
 **	Setting timeout to our receiving socket
 */
 	tv.tv_sec = TIMEOUT;
-	if (setsockopt(target->receiverfd, SOL_SOCKET, SO_RCVTIMEO , &tv, sizeof(tv)) < 0)
-		RET_ERROR(-1);
+	errno = 0;
+	setsockopt(target->receiverfd, SOL_SOCKET, SO_RCVTIMEO , &tv, sizeof(tv));
 
+_init_socket_end:
 	freeaddrinfo(res);
+	if (errno != 0)
+		RET_ERROR(-1);
 	return 0;
 }
 
@@ -87,14 +101,14 @@ int main(int ac, char **av)
 		.ip = NULL
 	};
 
-	if (ac < 2) {
-		print_help();
+	if (getuid() != 0) {
+		printf("%s: don't have enough permission\n", av[0]);
 		return 0;
 	}
 
 	srand(time(NULL));
 
-	if (parse_arg(ac, ++av, &target) != 0)
+	if (parse_arg(ac - 1, ++av, &target) != 0)
 		return 0;
 	if (init_socket(&target) != 0)
 		return -1;
